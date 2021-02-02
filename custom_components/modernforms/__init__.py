@@ -26,7 +26,7 @@ async def async_setup_entry(hass, config_entry):
   host = fan.get(CONF_FAN_HOST)
   has_light = fan.get(CONF_ENABLE_LIGHT)
 
-  device = ModernFormsDevice(name, host, has_light, scan_interval)
+  device = ModernFormsDevice(hass, name, host, has_light, scan_interval)
 
   # Ensure client id is set
   await hass.async_add_executor_job(device.update_status)
@@ -53,12 +53,6 @@ class ModernFormsBaseEntity(Entity):
     self.device = device
     self.device._attach(self)
 
-    def update_action(time):
-      device.update_status()
-
-    async_call_later(hass, 0, update_action)
-    self.poll = async_track_time_interval(hass, update_action, device.interval)
-
   def _device_updated(self):
     self.schedule_update_ha_state()
 
@@ -71,13 +65,19 @@ class ModernFormsBaseEntity(Entity):
     return self.device.data
 
 class ModernFormsDevice:
-  def __init__(self, name, host, has_light=False, interval=CONF_SCAN_INTERVAL):
+  def __init__(self, hass, name, host, has_light=False, interval=CONF_SCAN_INTERVAL):
     self.url = "http://{}/mf".format(host)
     self.name = name
     self.data = {}
     self.has_light = has_light
     self.subscribers = []
     self.interval = interval
+
+    def update_action(time):
+      self.update_status()
+
+    async_call_later(hass, 0, update_action)
+    self.poll = async_track_time_interval(hass, update_action, self.interval)
 
   def _attach(self, sub):
     self.subscribers.append(sub)
