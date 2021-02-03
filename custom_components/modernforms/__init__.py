@@ -48,8 +48,7 @@ async def async_setup_entry(hass, config_entry):
   return True
 
 class ModernFormsBaseEntity(Entity):
-  def __init__(self, hass, device):
-    self.hass = hass
+  def __init__(self, device):
     self.device = device
     self.device._attach(self)
 
@@ -65,7 +64,7 @@ class ModernFormsBaseEntity(Entity):
     return self.device.data
 
 class ModernFormsDevice:
-  def __init__(self, hass, name, host, has_light=False, interval=CONF_SCAN_INTERVAL):
+  def __init__(self, hass, name, host, has_light=False, interval=SCAN_INTERVAL):
     self.url = "http://{}/mf".format(host)
     self.name = name
     self.data = {}

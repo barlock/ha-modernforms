@@ -10,11 +10,11 @@ from .const import DOMAIN, DEVICES, CONF_FAN_HOST
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
   device = hass.data[DOMAIN][DEVICES][config_entry.data.get(CONF_FAN_HOST)]
-  return async_add_devices([ModernFormsLight(hass, device)])
+  return async_add_devices([ModernFormsLight(device)])
 
 class ModernFormsLight(LightEntity, ModernFormsBaseEntity):
-  def __init__(self, hass, device):
-    ModernFormsBaseEntity.__init__(self, hass, device)
+  def __init__(self, device):
+    ModernFormsBaseEntity.__init__(self, device)
 
   @property
   def brightness(self):
