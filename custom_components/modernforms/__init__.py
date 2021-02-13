@@ -1,17 +1,16 @@
+from datetime import timedelta
 import requests
 
-from datetime import timedelta
-from homeassistant.const import (CONF_SCAN_INTERVAL)
-from homeassistant.helpers.entity import Entity
-from homeassistant.helpers.event import (async_call_later, async_track_time_interval)
+from homeassistant.helpers.update_coordinator import (
+  CoordinatorEntity,
+  DataUpdateCoordinator,
+  UpdateFailed,
+)
 import logging
 
 from .const import DOMAIN, DEVICES, CONF_FAN_NAME, CONF_FAN_HOST, CONF_ENABLE_LIGHT
 
 _LOGGER = logging.getLogger(__name__)
-
-CONF_LIGHT = "light"
-SCAN_INTERVAL = timedelta(seconds=10)
 
 def setup(hass, config):
   hass.data[DOMAIN] = {}
@@ -21,16 +20,35 @@ def setup(hass, config):
 
 async def async_setup_entry(hass, config_entry):
   fan = config_entry.data
-  scan_interval = fan.get(CONF_SCAN_INTERVAL, SCAN_INTERVAL)
   name = fan.get(CONF_FAN_NAME)
   host = fan.get(CONF_FAN_HOST)
   has_light = fan.get(CONF_ENABLE_LIGHT)
 
-  device = ModernFormsDevice(hass, name, host, has_light, scan_interval)
+  device = ModernFormsDevice(name, host, has_light)
 
-  # Ensure client id is set
-  await hass.async_add_executor_job(device.update_status)
-  hass.data[DOMAIN][DEVICES][host] = device
+  async def update_status():
+    try:
+      await hass.async_add_executor_job(device.update_status)
+    except Exception as err:
+      raise UpdateFailed(f"Error communicating with modern forms device: {err}")
+
+  coordinator = DataUpdateCoordinator(
+    hass,
+    _LOGGER,
+    # Name of the data. For logging purposes.
+    name="sensor",
+    update_method=update_status,
+    # Polling interval. Will only be polled if there are subscribers.
+    update_interval=timedelta(seconds=30),
+  )
+
+  hass.data[DOMAIN][DEVICES][host] = {
+    "device": device,
+    "coordinator": coordinator
+  }
+
+  # Fetch initial data so we have data when entities subscribe
+  await coordinator.async_refresh()
 
   hass.async_create_task(
     hass.config_entries.async_forward_entry_setup(
@@ -47,8 +65,9 @@ async def async_setup_entry(hass, config_entry):
 
   return True
 
-class ModernFormsBaseEntity(Entity):
-  def __init__(self, device):
+class ModernFormsBaseEntity(CoordinatorEntity):
+  def __init__(self, device, coordinator: DataUpdateCoordinator):
+    super().__init__(coordinator)
     self.device = device
     self.device._attach(self)
 
@@ -56,27 +75,17 @@ class ModernFormsBaseEntity(Entity):
     self.schedule_update_ha_state()
 
   @property
-  def should_poll(self):
-    return False
-
-  @property
   def device_state_attributes(self):
     return self.device.data
 
 class ModernFormsDevice:
-  def __init__(self, hass, name, host, has_light=False, interval=SCAN_INTERVAL):
+  def __init__(self, name, host, has_light=False):
     self.url = "http://{}/mf".format(host)
     self.name = name
     self.data = {}
     self.has_light = has_light
     self.subscribers = []
-    self.interval = interval
 
-    def update_action(time):
-      self.update_status()
-
-    async_call_later(hass, 0, update_action)
-    self.poll = async_track_time_interval(hass, update_action, self.interval)
 
   def _attach(self, sub):
     self.subscribers.append(sub)
@@ -101,7 +110,7 @@ class ModernFormsDevice:
     return self.data.get("lightOn", False)
 
   def lightBrightness(self):
-    return self.data.get("lightBrightness", 0);
+    return self.data.get("lightBrightness", 0)
 
   def set_fan_on(self):
     self._send_request({"fanOn": 1})

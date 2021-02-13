@@ -35,5 +35,6 @@ This will create the normal `config` directory in `.config`. Once done, you prob
 ```yaml
 # .config/configuration.yaml
 logger:
-  default: info
+  logs: 
+    custom_components.modernforms: info
 ```

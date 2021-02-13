@@ -1,16 +1,15 @@
 from homeassistant.components.fan import (FanEntity, SPEED_OFF, SUPPORT_SET_SPEED, SUPPORT_DIRECTION)
 
-from . import ModernFormsBaseEntity, ModernFormsDevice
-
+from . import ModernFormsBaseEntity
 from .const import DOMAIN, DEVICES, CONF_FAN_HOST
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
-  device = hass.data[DOMAIN][DEVICES][config_entry.data.get(CONF_FAN_HOST)]
-  return async_add_devices([ModernFormsFan(device)])
+  platform = hass.data[DOMAIN][DEVICES][config_entry.data.get(CONF_FAN_HOST)]
+  return async_add_devices([ModernFormsFan(platform["device"], platform["coordinator"])])
 
 class ModernFormsFan(FanEntity, ModernFormsBaseEntity):
-  def __init__(self, device):
-    ModernFormsBaseEntity.__init__(self, device)
+  def __init__(self, device, coordinator):
+    ModernFormsBaseEntity.__init__(self, device, coordinator)
 
   @property
   def unique_id(self):

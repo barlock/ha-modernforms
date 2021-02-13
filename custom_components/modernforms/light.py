@@ -9,12 +9,12 @@ from . import ModernFormsBaseEntity
 from .const import DOMAIN, DEVICES, CONF_FAN_HOST
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
-  device = hass.data[DOMAIN][DEVICES][config_entry.data.get(CONF_FAN_HOST)]
-  return async_add_devices([ModernFormsLight(device)])
+  platform = hass.data[DOMAIN][DEVICES][config_entry.data.get(CONF_FAN_HOST)]
+  return async_add_devices([ModernFormsLight(platform["device"], platform["coordinator"])])
 
 class ModernFormsLight(LightEntity, ModernFormsBaseEntity):
-  def __init__(self, device):
-    ModernFormsBaseEntity.__init__(self, device)
+  def __init__(self, device, coordinator):
+    ModernFormsBaseEntity.__init__(self, device, coordinator)
 
   @property
   def brightness(self):
