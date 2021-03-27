@@ -39,7 +39,7 @@ async def async_setup_entry(hass, config_entry):
     name="sensor",
     update_method=update_status,
     # Polling interval. Will only be polled if there are subscribers.
-    update_interval=timedelta(seconds=30),
+    update_interval=timedelta(seconds=60),
   )
 
   hass.data[DOMAIN][DEVICES][host] = {
