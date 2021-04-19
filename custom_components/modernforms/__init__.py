@@ -36,7 +36,7 @@ async def async_setup_entry(hass, config_entry):
     hass,
     _LOGGER,
     # Name of the data. For logging purposes.
-    name="sensor",
+    name="mf-device",
     update_method=update_status,
     # Polling interval. Will only be polled if there are subscribers.
     update_interval=timedelta(seconds=60),
